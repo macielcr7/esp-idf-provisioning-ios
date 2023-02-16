@@ -92,6 +92,7 @@ func pad(_ data: Data, to size: Int) -> Data {
     return Data(count: size - data.count) + data
 }
 
+@available(iOS 13.0, *)
 enum Implementation<HF: HashFunction> {
     // swiftlint:disable:next identifier_name
     static func H(_ data: Data) -> Data {
