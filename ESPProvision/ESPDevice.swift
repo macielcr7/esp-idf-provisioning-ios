@@ -465,11 +465,19 @@ open class ESPDevice {
             // POP is mandatory for secure 2
             guard let pop = proofOfPossession else {
                 delegate?.getProofOfPossesion(forDevice: self, completionHandler: { popString in
-                    self.getUsernameForSecure2(sessionPath: sessionPath, password: popString, completionHandler: completionHandler)
+                    if #available(iOS 13.0, *) {
+                        self.getUsernameForSecure2(sessionPath: sessionPath, password: popString, completionHandler: completionHandler)
+                    } else {
+                        ESPLog.log("Error session security 2 only available on ios13")
+                    }
                 })
                 return
             }
-            getUsernameForSecure2(sessionPath: sessionPath, password: pop, completionHandler: completionHandler)
+            if #available(iOS 13.0, *) {
+                getUsernameForSecure2(sessionPath: sessionPath, password: pop, completionHandler: completionHandler)
+            } else {
+                ESPLog.log("Error session security 2 only available on ios13")
+            }
         case .secure:
             if let capability = self.capabilities, capability.contains(ESPConstants.noProofCapability) {
                 initSecureSession(sessionPath: sessionPath, pop: "", completionHandler: completionHandler)
@@ -499,6 +507,7 @@ open class ESPDevice {
         initSession(sessionPath: sessionPath, completionHandler: completionHandler)
     }
     
+    @available(iOS 13.0, *)
     func getUsernameForSecure2(sessionPath: String?, password: String, completionHandler: @escaping (ESPSessionStatus) -> Void) {
         if let username = username {
             initSecure2Session(sessionPath: sessionPath, username: username, password: password, completionHandler: completionHandler)
@@ -513,6 +522,7 @@ open class ESPDevice {
         }
     }
     
+    @available(iOS 13.0, *)
     func initSecure2Session(sessionPath: String?, username: String, password: String, completionHandler: @escaping (ESPSessionStatus) -> Void) {
         ESPLog.log("Initialise session security 2")
         securityLayer = ESPSecurity2(username: username, password: password)
