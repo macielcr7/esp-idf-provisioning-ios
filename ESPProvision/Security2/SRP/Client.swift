@@ -24,6 +24,7 @@ import CryptoKit
 
 /// SRP Client; the party that initializes the authentication and
 /// must proof possession of the correct password.
+@available(iOS 13.0, *)
 public class Client<H: HashFunction> {
     let a: BigUInt
     let A: BigUInt
