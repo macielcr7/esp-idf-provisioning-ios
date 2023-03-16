@@ -93,6 +93,8 @@ open class ESPDevice {
     var session:ESPSession!
     /// Name of device.
     var deviceName: String
+    /// Identifier of device
+    var deviceAddress: String
     /// BLE transport layer.
     var espBleTransport: ESPBleTransport!
     /// SoftAp transport layer.
@@ -137,6 +139,11 @@ open class ESPDevice {
         return deviceName
     }
 
+    public var address:String {
+        return deviceAddress
+    }
+    
+
     /// Create `ESPDevice` object.
     ///
     /// - Parameters:
@@ -145,8 +152,8 @@ open class ESPDevice {
     ///   - transport: Mode of transport.
     ///   - proofOfPossession: Pop of device.
     ///   - softAPPassword: Password in case SoftAP device.
-    public init(name: String, security: ESPSecurity, transport: ESPTransport, proofOfPossession:String? = nil, username:String? = nil, softAPPassword:String? = nil, advertisementData: [String:Any]? = nil) {
-        ESPLog.log("Intializing ESPDevice with name:\(name), security:\(security), transport:\(transport), proofOfPossession:\(proofOfPossession ?? "nil") and softAPPassword:\(softAPPassword ?? "nil")")
+    public init(name: String, security: ESPSecurity, transport: ESPTransport, proofOfPossession:String? = nil, username:String? = nil, softAPPassword:String? = nil, advertisementData: [String:Any]? = nil, address:String? = nil) {
+        ESPLog.log("Intializing ESPDevice with name:\(name), security:\(security), transport:\(transport), proofOfPossession:\(proofOfPossession ?? "nil") and softAPPassword:\(softAPPassword ?? "nil") and deviceAddress:\(address ?? "nil")")
         self.deviceName = name
         self.security = security
         self.transport = transport
@@ -154,6 +161,7 @@ open class ESPDevice {
         self.proofOfPossession = proofOfPossession
         self.softAPPassword = softAPPassword
         self.advertisementData = advertisementData
+        self.deviceAddress = address ?? ""
     }
     
     /// Establish session with device to allow data transmission.
