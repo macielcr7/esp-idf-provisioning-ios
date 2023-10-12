@@ -36,6 +36,7 @@ enum Security1SessionState: Int {
 
 /// The `ESPSecurity1` class conforms and implememnt methods of `ESPCodeable` protocol.
 /// This class provides methods for handling request/response data in a secure communication.
+@available(iOS 13.0, *)
 class ESPSecurity1: ESPCodeable {
     
     private static let basePoint = Data([9] + [UInt8](repeating: 0, count: 31))
