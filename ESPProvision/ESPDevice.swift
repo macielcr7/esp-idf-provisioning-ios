@@ -509,7 +509,12 @@ open class ESPDevice {
     
     func initSecureSession(sessionPath: String?, pop: String, completionHandler: @escaping (ESPSessionStatus) -> Void) {
         ESPLog.log("Initialise session security 1")
-        securityLayer = ESPSecurity1(proofOfPossession: pop)
+        if #available(iOS 13.0, *) {
+            securityLayer = ESPSecurity1(proofOfPossession: pop)
+        } else {
+            // Fallback on earlier versions
+            ESPLog.log("Fallback on earlier versions")
+        }
         initSession(sessionPath: sessionPath, completionHandler: completionHandler)
     }
     
