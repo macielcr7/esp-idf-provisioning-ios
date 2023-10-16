@@ -65,7 +65,8 @@ class ESPWiFiManager {
         do {
             _ = try Espressif_WiFiScanPayload(serializedData: decryptedResponse)
         } catch {
-            delegate?.wifiScanFinished(wifiList: nil, error: .scanRequestError(error))
+            print("processStartScan WiFi: catch \(error.localizedDescription)")
+            //delegate?.wifiScanFinished(wifiList: nil, error: .scanRequestError(error))
         }
     }
 
