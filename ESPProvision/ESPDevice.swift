@@ -471,19 +471,11 @@ open class ESPDevice {
             // POP is mandatory for secure 2
             guard let pop = proofOfPossession else {
                 delegate?.getProofOfPossesion(forDevice: self, completionHandler: { popString in
-                    if #available(iOS 13.0, *) {
-                        self.getUsernameForSecure2(sessionPath: sessionPath, password: popString, completionHandler: completionHandler)
-                    } else {
-                        ESPLog.log("Error session security 2 only available on ios13")
-                    }
+                    self.getUsernameForSecure2(sessionPath: sessionPath, password: popString, completionHandler: completionHandler)
                 })
                 return
             }
-            if #available(iOS 13.0, *) {
-                getUsernameForSecure2(sessionPath: sessionPath, password: pop, completionHandler: completionHandler)
-            } else {
-                ESPLog.log("Error session security 2 only available on ios13")
-            }
+            getUsernameForSecure2(sessionPath: sessionPath, password: pop, completionHandler: completionHandler)
         case .secure:
             if let capability = self.capabilities, capability.contains(ESPConstants.noProofCapability) {
                 initSecureSession(sessionPath: sessionPath, pop: "", completionHandler: completionHandler)
@@ -509,12 +501,7 @@ open class ESPDevice {
     
     func initSecureSession(sessionPath: String?, pop: String, completionHandler: @escaping (ESPSessionStatus) -> Void) {
         ESPLog.log("Initialise session security 1")
-        if #available(iOS 13.0, *) {
-            securityLayer = ESPSecurity1(proofOfPossession: pop)
-        } else {
-            // Fallback on earlier versions
-            ESPLog.log("Fallback on earlier versions")
-        }
+        securityLayer = ESPSecurity1(proofOfPossession: pop)
         initSession(sessionPath: sessionPath, completionHandler: completionHandler)
     }
     
