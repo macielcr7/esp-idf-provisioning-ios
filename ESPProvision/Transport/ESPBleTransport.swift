@@ -276,7 +276,9 @@ extension ESPBleTransport: CBCentralManagerDelegate {
                         rssi _: NSNumber) {
         ESPLog.log("Peripheral devices discovered.\(data.debugDescription)")
         if let peripheralName = data["kCBAdvDataLocalName"] as? String ?? peripheral.name  {
-            if (deviceNamePrefix != nil && peripheralName.lowercased().hasPrefix((deviceNamePrefix?.lowercased())!) ) || (self.serviceUuids != nil) {
+            let uuid = CBUUID(string: peripheral.identifier.uuidString)
+            if ( (deviceNamePrefix != nil && peripheralName.lowercased().hasPrefix((deviceNamePrefix?.lowercased())!)) || 
+                (self.serviceUuids != nil && ((self.serviceUuids?.contains(uuid)) != nil)) ) {
                 let identifier = peripheral.identifier.uuidString
                 let newEspDevice  = ESPDevice(name: peripheralName, security: .secure, transport: .ble, advertisementData: data, address: identifier)
                 espressifPeripherals[peripheralName] = newEspDevice
@@ -287,7 +289,7 @@ extension ESPBleTransport: CBCentralManagerDelegate {
 
     func centralManager(_: CBCentralManager, didConnect _: CBPeripheral) {
         ESPLog.log("Connected to peripheral. Discover services.")
-        currentPeripheral?.discoverServices(self.serviceUuids)
+        currentPeripheral?.discoverServices(nil)
     }
 
     func centralManager(_: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
@@ -310,7 +312,7 @@ extension ESPBleTransport: CBPeripheralDelegate {
         currentPeripheral = peripheral
         currentService = services[0]
         if let currentService = currentService {
-            currentPeripheral?.discoverCharacteristics(self.serviceUuids, for: currentService)
+            currentPeripheral?.discoverCharacteristics(nil, for: currentService)
         }
     }
 
