@@ -19,7 +19,6 @@
 import Foundation
 import UIKit
 import CoreBluetooth
-import AVFoundation
 
 /// Supported mode of communication with device.
 public enum ESPTransport: String {
@@ -62,7 +61,7 @@ public enum ESPSecurity: Int {
 
 /// The `ESPProvisionManager` class is a singleton class. It provides methods for getting `ESPDevice` object.
 /// Provide option to
-public class ESPProvisionManager: NSObject, AVCaptureMetadataOutputObjectsDelegate {
+public class ESPProvisionManager: NSObject {
     
     private var espDevices:[ESPDevice] = []
     private var espBleTransport:ESPBleTransport!
@@ -72,8 +71,6 @@ public class ESPProvisionManager: NSObject, AVCaptureMetadataOutputObjectsDelega
     private var security: ESPSecurity = .secure2
     private var searchCompletionHandler: (([ESPDevice]?,ESPDeviceCSSError?) -> Void)?
     private var scanCompletionHandler: ((ESPDevice?,ESPDeviceCSSError?) -> Void)?
-    private var captureSession: AVCaptureSession!
-    private var previewLayer: AVCaptureVideoPreviewLayer?
     // Stores block that will be invoked during QR code processing.
     private var scanStatusBlock: ((ESPScanStatus) -> Void)?
     
@@ -127,38 +124,10 @@ public class ESPProvisionManager: NSObject, AVCaptureMetadataOutputObjectsDelega
         espBleTransport.stopSearch()
     }
     
-    /// Scan for `ESPDevice` using QR code.
-    ///
-    /// - Parameters:
-    ///   - scanView: Camera preview layer will be added as subview of this `UIView` parameter.
-    ///   - completionHandler: The completion handler is called when scan method is completed. Result
-    ///                        of scan is returned as parameter of this function. When scan is successful
-    ///                        found device is returned. When scan fails then reaon for failure is
-    ///                        returned as `ESPDeviceCSSError`.
-    ///   - scanStatus: Callback invoked during QR code processing with current status as `ESPScanStatus`.
-    public func scanQRCode(scanView: UIView, completionHandler: @escaping (ESPDevice?,ESPDeviceCSSError?) -> Void, scanStatus: ((ESPScanStatus) -> ())? = nil) {
-        ESPLog.log("Checking Camera Permission..")
-        getAuthorizationStatus { authorized,error in
-            if authorized {
-                ESPLog.log("Scanning QR Code..")
-                self.searchCompletionHandler = nil
-                self.scanCompletionHandler = completionHandler
-                self.scanStatusBlock = scanStatus
-                self.scanStatusBlock?(.scanStarted)
-                self.startCaptureSession(scanView: scanView)
-            } else {
-                completionHandler(nil, error)
-            }
-        }
-    }
-    
     /// Stop camera session that is capturing QR code. Call this method when your `Scan View` goes out of scope.
     ///
     public func stopScan() {
         ESPLog.log("Stopping Camera Session..")
-        if self.captureSession != nil {
-            self.captureSession.stopRunning()
-        }
     }
     
     /// Refresh device list with current transport and security settings.
@@ -167,149 +136,6 @@ public class ESPProvisionManager: NSObject, AVCaptureMetadataOutputObjectsDelega
     ///                                of refresh is returned as parameter of this function.
     public func refreshDeviceList(completionHandler: @escaping ([ESPDevice]?,ESPDeviceCSSError?) -> Void) {
         searchESPDevices(devicePrefix: self.devicePrefix, serviceUuids: self.serviceUuids, transport: self.transport, security: self.security, completionHandler: completionHandler)
-    }
-    
-    /// Get authorization status of Camera.
-    ///
-    /// - Parameter completionHandler: Invoked when camera permission status is determined. Returns `true`
-    ///                                when camera access is granted 'false' otherwise.
-    private func getAuthorizationStatus(completionHandler: @escaping (Bool,ESPDeviceCSSError?) -> Void) {
-        switch AVCaptureDevice.authorizationStatus(for: AVMediaType.video) {
-        case .authorized:
-            ESPLog.log("Camera Access Allowed")
-            completionHandler(true,nil)
-        case .notDetermined:
-            ESPLog.log("Camera Access Not Determined. Requesting access..")
-            AVCaptureDevice.requestAccess(for: .video) { granted in
-                guard granted else {
-                    ESPLog.log("Camera Access Granted")
-                    completionHandler(false,.cameraAccessDenied)
-                    return
-                }
-                ESPLog.log("Camera Access Denied")
-                completionHandler(true,nil)
-            }
-        case .denied, .restricted:
-            ESPLog.log("Camera Access Denied")
-            completionHandler(false,.cameraAccessDenied)
-        default:
-            ESPLog.log("Camera Access Not Available")
-            completionHandler(false,.cameraNotAvailable)
-        }
-    }
-    
-    /// Start capturing camera inputs.
-    ///
-    /// - Parameter scanView: Super view of camera preview layer.
-    private func startCaptureSession(scanView: UIView) {
-        DispatchQueue.main.async {
-            self.captureSession = AVCaptureSession()
-            guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
-                ESPLog.log("Video capture not available.")
-                self.scanCompletionHandler?(nil,.cameraNotAvailable)
-                return
-            }
-            let videoInput: AVCaptureDeviceInput
-
-            do {
-                videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
-            } catch {
-                ESPLog.log("Video input not available.")
-                self.scanCompletionHandler?(nil,.avCaptureDeviceInputError)
-                return
-            }
-
-            if self.captureSession.canAddInput(videoInput) {
-                self.captureSession.addInput(videoInput)
-            } else {
-                ESPLog.log("Video input error.")
-                self.scanCompletionHandler?(nil,.videoInputError)
-                return
-            }
-
-            let metadataOutput = AVCaptureMetadataOutput()
-
-            if self.captureSession.canAddOutput(metadataOutput) {
-                self.captureSession.addOutput(metadataOutput)
-
-                metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-                metadataOutput.metadataObjectTypes = [.qr]
-            } else {
-                ESPLog.log("Video output error.")
-                self.scanCompletionHandler?(nil,.videoOutputError)
-                return
-            }
-
-            let aPreviewLayer = AVCaptureVideoPreviewLayer(session: self.captureSession)
-            
-            if aPreviewLayer.connection?.isVideoOrientationSupported ?? false {
-                
-                var interfaceOrientation:UIInterfaceOrientation = .portrait
-                var videoOrientation:AVCaptureVideoOrientation  = .portrait
-                
-                if #available(iOS 13.0, *) {
-                    interfaceOrientation = UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .portrait
-                    
-                } else {
-                    interfaceOrientation = UIApplication.shared.statusBarOrientation
-                }
-                
-                videoOrientation = interfaceOrientation.videoOrientation ?? videoOrientation
-                aPreviewLayer.connection?.videoOrientation = videoOrientation
-            }
-            
-            self.previewLayer = aPreviewLayer
-            self.previewLayer?.frame = scanView.layer.bounds
-            self.previewLayer?.videoGravity = .resizeAspectFill
-            scanView.layer.addSublayer(self.previewLayer!)
-
-            ESPLog.log("Camera session started...")
-            DispatchQueue.global(qos: .background).async {
-                self.captureSession.startRunning()
-            }
-        }
-    }
-    
-    public func metadataOutput(_: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from _: AVCaptureConnection) {
-        if let metadataObject = metadataObjects.first {
-            guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
-            guard let stringValue = readableObject.stringValue else { return }
-            captureSession.stopRunning()
-            parseQrCode(code: stringValue)
-            ESPLog.log("Received QR code response.")
-        }
-    }
-    
-    /// Parse scanned QR code data.
-    ///
-    /// - Parameter code: Scanned string.
-    private func parseQrCode(code: String) {
-        
-        ESPLog.log("Parsing QR code response...code:\(code)")
-        self.scanStatusBlock?(.readingCode)
-        
-        guard let scanCompletionHandler = scanCompletionHandler else {
-            return
-        }
-        
-        if let jsonData = code.data(using: .utf8) {
-            do {
-                let decoder = JSONDecoder()
-                let decodeResponse = try decoder.decode(ESPScanResult.self, from: jsonData)
-                switch decodeResponse.transport {
-                case .ble:
-                    createESPDevice(deviceName: decodeResponse.name, transport: decodeResponse.transport, security: decodeResponse.security, proofOfPossession: decodeResponse.pop, username: decodeResponse.username, completionHandler: scanCompletionHandler)
-                default:
-                    createESPDevice(deviceName: decodeResponse.name, transport: decodeResponse.transport, security: decodeResponse.security, proofOfPossession: decodeResponse.pop, softAPPassword: decodeResponse.password ?? "", username: decodeResponse.username, completionHandler: scanCompletionHandler)
-                    
-                }
-            } catch {
-                scanCompletionHandler(nil,.invalidQRCode(code))
-            }
-        } else {
-            ESPLog.log("Invalid QR code.")
-            scanCompletionHandler(nil,.invalidQRCode(code))
-        }
     }
         
     /// Manually create `ESPDevice` object.
@@ -373,17 +199,5 @@ extension ESPProvisionManager: ESPBLETransportDelegate {
         
         self.searchCompletionHandler?(nil,.espDeviceNotFound)
         self.scanCompletionHandler?(nil,.espDeviceNotFound)
-    }
-}
-
-extension UIInterfaceOrientation {
-    var videoOrientation: AVCaptureVideoOrientation? {
-        switch self {
-        case .portraitUpsideDown: return .portraitUpsideDown
-        case .landscapeRight: return .landscapeRight
-        case .landscapeLeft: return .landscapeLeft
-        case .portrait: return .portrait
-        default: return nil
-        }
     }
 }
