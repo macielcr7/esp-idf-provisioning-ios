@@ -61,7 +61,7 @@ public enum ESPSecurity: Int {
 
 /// The `ESPProvisionManager` class is a singleton class. It provides methods for getting `ESPDevice` object.
 /// Provide option to
-public class ESPProvisionManager: NSObject, AVCaptureMetadataOutputObjectsDelegate {
+public class ESPProvisionManager: NSObject {
     
     private var espDevices:[ESPDevice] = []
     private var espBleTransport:ESPBleTransport!
