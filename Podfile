@@ -6,8 +6,7 @@ target 'ESPProvision' do
   use_frameworks!
 
   # Pods for ESPProvision
-  pod 'SwiftProtobuf', '~> 1.5.0'
-  pod 'Curve25519', '~> 1.1.0'
+  pod 'SwiftProtobuf', '~> 1.22.0'
 
 end
 
