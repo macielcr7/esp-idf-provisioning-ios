@@ -22,7 +22,7 @@ Pod::Spec.new do |spec|
                   }
 
   spec.author = "Espressif Systems"
-  spec.platform = :ios, "11.0"
+  spec.platform = :ios, "12.0"
   spec.source = { :git => "https://github.com/macielcr7/esp-idf-provisioning-ios.git", :tag => "#{spec.version}" }
 
   spec.source_files  = "ESPProvision", "ESPProvision/**/*.{swift}"
